@@ -40,7 +40,7 @@ __device__ float Distance(const kdNode &a, const kdNode &b)
 }
 
 // Links together particles that are found within linking length range of one another
-__device__ void EvaluateParticlePairsWithinLinkingLength(int *resultArray, int queryIndex, int target) 
+__device__ void EvaluateParticlePairsWithinLinkingLength(int *resultArray, int queryIndex, int target)
 {
 	int targetCur, targetBack, selfCur, selfBack;
 	targetCur = target;
@@ -48,8 +48,8 @@ __device__ void EvaluateParticlePairsWithinLinkingLength(int *resultArray, int q
 	selfCur = queryIndex;
 	selfBack = resultArray[queryIndex];
 
-	// Need to find the current sink particle for at least one of the particles (in case they currently belong to seperate halos)
-	while (selfCur != selfBack || targetCur != targetBack) 
+	// Need to find the current sink particle for the self halo or the target halo
+	while (selfCur != selfBack || targetCur != targetBack)
 	{
 		targetCur = targetBack;
 		targetBack = resultArray[targetCur];
@@ -57,17 +57,29 @@ __device__ void EvaluateParticlePairsWithinLinkingLength(int *resultArray, int q
 		selfBack = resultArray[selfCur];
 	}
 
-	// If they are not currently part of the same halo, connect them using some simple conditional statements to avoid race conditions
-	if (selfBack != targetBack) 
+	// If they are not currently part of the same halo, connect them using some simple conditional statements to avoid race conditions	
+	bool updateSinkParticle = false;
+	while ((selfBack != targetBack) && (updateSinkParticle == false))
 	{
-		if (selfBack < targetBack) 		
-			resultArray[targetBack] = selfBack;		
+		int valueChange; 
+		if (selfBack < targetBack) 
+		{
+			valueChange = atomicCAS(&resultArray[targetBack], targetBack, selfBack);
+			if (valueChange == selfBack)
+				updateSinkParticle = true;
+			else
+				targetBack = valueChange;
+		}
 		else if (selfBack > targetBack) 
-			resultArray[selfBack] = targetBack;		
+		{
+			valueChange = atomicCAS(&resultArray[selfBack], selfBack, targetBack);
+			if (valueChange == selfBack)			
+				updateSinkParticle = true;			
+			else			
+				selfBack = valueChange;			
+		}		
 	}
 }
-
-
 
 // Iteratively searches the kd-tree - this method is prefered as it uses no extra memory at only a small hit in run-time
 __device__ void SearchKdTreeIteratively(const kdNode *dataArray, const kdNode &queryPoint, int *resultArray, float linkingLength, int kdRoot, int queryIndex) 
