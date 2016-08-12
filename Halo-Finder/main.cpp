@@ -114,7 +114,6 @@ int ReadFileData(char* fileName, kdNode** dataArray)
 	for (unsigned int i = 0; i < nParticles; i++) {
 		fread(&particle, sizeof(ParticleData), 1, file);
 		if (nDark) {
-			(*dataArray)[i].id = i;
 			(*dataArray)[i].coords[0] = particle.pos[0];
 			(*dataArray)[i].coords[1] = particle.pos[1];
 			(*dataArray)[i].coords[2] = particle.pos[2];

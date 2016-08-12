@@ -16,9 +16,6 @@ void SwapNodes(struct kdNode *x, struct kdNode *y) {
 	memcpy(coords, x->coords, sizeof(coords));
 	memcpy(x->coords, y->coords, sizeof(coords));
 	memcpy(y->coords, coords, sizeof(coords));
-	tempId = x->id;
-	x->id = y->id;
-	y->id = tempId;
 }
 
 // Finds the median for the specified range of kd-nodes with quick select

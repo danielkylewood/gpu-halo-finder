@@ -42,41 +42,41 @@ __device__ float Distance(const kdNode &a, const kdNode &b)
 // Links together particles that are found within linking length range of one another
 __device__ void EvaluateParticlePairsWithinLinkingLength(int *resultArray, int queryIndex, int target)
 {
-	int targetCur, targetBack, selfCur, selfBack;
-	targetCur = target;
-	targetBack = resultArray[target];
-	selfCur = queryIndex;
-	selfBack = resultArray[queryIndex];
+	int targetCurrent, targetSink, selfCurrent, selfSink;
+	targetCurrent = target;
+	targetSink = resultArray[target];
+	selfCurrent = queryIndex;
+	selfSink = resultArray[queryIndex];
 
 	// Need to find the current sink particle for the self halo or the target halo
-	while (selfCur != selfBack || targetCur != targetBack)
+	while (selfCurrent != selfSink || targetCurrent != targetSink)
 	{
-		targetCur = targetBack;
-		targetBack = resultArray[targetCur];
-		selfCur = selfBack;
-		selfBack = resultArray[selfCur];
+		targetCurrent = targetSink;
+		targetSink = resultArray[targetCurrent];
+		selfCurrent = selfSink;
+		selfSink = resultArray[selfCurrent];
 	}
 
 	// If they are not currently part of the same halo, connect them using some simple conditional statements to avoid race conditions	
 	bool updateSinkParticle = false;
-	while ((selfBack != targetBack) && (updateSinkParticle == false))
+	while ((selfSink != targetSink) && (updateSinkParticle == false))
 	{
 		int valueChange; 
-		if (selfBack < targetBack) 
+		if (selfSink < targetSink)
 		{
-			valueChange = atomicCAS(&resultArray[targetBack], targetBack, selfBack);
-			if (valueChange == selfBack)
+			valueChange = atomicCAS(&resultArray[targetSink], targetSink, selfSink);
+			if (valueChange == selfSink)
 				updateSinkParticle = true;
 			else
-				targetBack = valueChange;
+				targetSink = valueChange;
 		}
-		else if (selfBack > targetBack) 
+		else if (selfSink > targetSink)
 		{
-			valueChange = atomicCAS(&resultArray[selfBack], selfBack, targetBack);
-			if (valueChange == selfBack)			
+			valueChange = atomicCAS(&resultArray[selfSink], selfSink, targetSink);
+			if (valueChange == selfSink)
 				updateSinkParticle = true;			
 			else			
-				selfBack = valueChange;			
+				selfSink = valueChange;
 		}		
 	}
 }
